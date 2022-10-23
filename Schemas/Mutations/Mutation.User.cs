@@ -8,11 +8,10 @@ using OurTube.API.UseCases.Users.Commands;
 using OurTube.API.UseCases.Users.Queries;
 using System.Security.Claims;
 
-namespace OurTube.API.Schemas
+namespace OurTube.API.Schemas.Mutations
 {
-    public class Mutation
+    public partial class Mutation
     {
-        #region UserResolver
         public async Task<CreateUserResultType> RegisterUser([Service] IMediator mediator, IResolverContext context, CreateUserInputType input)
         {
             if (await mediator.Send(new CheckUsernameInUseQuery() { Username = input.Username }))
@@ -20,7 +19,7 @@ namespace OurTube.API.Schemas
                 context.ReportError(new Error("Username is already in use. Try another one", "ERROR_USERNAME_ALREADY_EXISTS"));
                 return null;
             }
-            
+
             var type = await mediator.Send(new CreateUserCommand()
             {
                 UserType = new UserType()
@@ -48,7 +47,7 @@ namespace OurTube.API.Schemas
                 }
             });
 
-            if (String.IsNullOrWhiteSpace(token))
+            if (string.IsNullOrWhiteSpace(token))
             {
                 context.ReportError(new Error("User doesnt exist", "ERROR_USER_NOT_FOUND"));
                 return null;
@@ -63,7 +62,5 @@ namespace OurTube.API.Schemas
                 }
             };
         }
-        #endregion UserResolver
-
     }
 }

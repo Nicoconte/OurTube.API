@@ -4,7 +4,7 @@ using OurTube.API.Schemas.Results;
 using OurTube.API.Schemas.Types;
 using OurTube.API.UseCases.Users.Commands;
 
-namespace OurTube.API.Schemas
+namespace OurTube.API.Schemas.Queries
 {
     public class Query
     {

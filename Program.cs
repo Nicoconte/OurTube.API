@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OurTube.API.Data;
-using OurTube.API.Schemas;
+using OurTube.API.Schemas.Mutations;
+using OurTube.API.Schemas.Queries;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
