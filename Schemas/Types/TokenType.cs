@@ -2,6 +2,7 @@
 {
     public class TokenType
     {
-        public String Value { get; set; }
+        public String Token { get; set; }
+        public String UserLogged { get; set; }
     }
 }

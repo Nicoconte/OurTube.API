@@ -1,10 +1,10 @@
-﻿using MediatR;
+﻿using AutoMapper;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OurTube.API.Data;
 using OurTube.API.Helpers;
 using OurTube.API.Schemas.Inputs;
-using OurTube.API.Schemas.Results;
 using OurTube.API.Schemas.Types;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -12,12 +12,13 @@ using System.Text;
 
 namespace OurTube.API.UseCases.Users.Queries
 {
-    public class LoginUserQuery : IRequest<(string Id, string Token)>
+    public class LoginUserQuery : IRequest<TokenType>
     {
-        public UserType UserType { get; set; }
+        public String Username { get; set; }
+        public String Password { get; set; }
     }
 
-    public class LoginUserQueryHandler : IRequestHandler<LoginUserQuery, (string Id, string Token)>
+    public class LoginUserQueryHandler : IRequestHandler<LoginUserQuery, TokenType>
     {
         private ApplicationDbContext _context;
         private IConfiguration _configuration; 
@@ -28,18 +29,18 @@ namespace OurTube.API.UseCases.Users.Queries
             _configuration = configuration;
         }
 
-        public async Task<(string Id, string Token)> Handle(LoginUserQuery request, CancellationToken cancellationToken)
+        public async Task<TokenType> Handle(LoginUserQuery request, CancellationToken cancellationToken)
         {
             try
             {
                 var user = await _context
                     .Users
                     .FirstOrDefaultAsync(c =>
-                        c.Username == request.UserType.Username &&
-                        c.Password == PasswordHelper.Hash(request.UserType.Password)
+                        c.Username == request.Username &&
+                        c.Password == PasswordHelper.Hash(request.Password)
                     ); ;
 
-                if (user is null) return (String.Empty, String.Empty);
+                if (user is null) return null;
 
                 var secretKey = _configuration.GetSection("Jwt:key").Value;
                 var keyAsBytes = Encoding.ASCII.GetBytes(secretKey);
@@ -62,11 +63,15 @@ namespace OurTube.API.UseCases.Users.Queries
 
                 var token = handler.WriteToken(newTokenCreated);
 
-                return (user.Id, token);
+                return new TokenType()
+                {
+                    UserLogged = user.Username,
+                    Token = token
+                };
             }
             catch(Exception ex)
             {
-                return (string.Empty, string.Empty);
+                return null;
             }
         }
     }

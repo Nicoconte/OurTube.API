@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using AutoMapper;
+using MediatR;
 using OurTube.API.Data;
 using OurTube.API.Entities;
 using OurTube.API.Helpers;
@@ -10,41 +11,41 @@ namespace OurTube.API.UseCases.Users.Commands
 {
     public class CreateUserCommand : IRequest<UserType>
     {
-        public UserType UserType { get; set; }
+        public String Username { get; set; }
+        public String Password { get; set; }
     }
 
     public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, UserType>
     {
         private ApplicationDbContext _context;
+        private IMapper _mapper;
 
-        public CreateUserCommandHandler(ApplicationDbContext context)
+        public CreateUserCommandHandler(ApplicationDbContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         public async Task<UserType> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
             try
             {
-                request.UserType.Id = Guid.NewGuid().ToString();
-                request.UserType.UpdatedAt = DateTime.Now;
-                request.UserType.CreatedAt = DateTime.Now;
-                request.UserType.Password = PasswordHelper.Hash(request.UserType.Password);
-
                 var user = new User()
                 {
-                    Id = request.UserType.Id,
-                    Username = request.UserType.Username,
-                    Password = request.UserType.Password,
-                    CreatedAt = request.UserType.CreatedAt,
-                    UpdatedAt = request.UserType.UpdatedAt
+                    Id = Guid.NewGuid().ToString(),
+                    Username = request.Username,
+                    Password = request.Password,
+                    CreatedAt = DateTime.Now,
+                    UpdatedAt = DateTime.Now
                 };
 
                 _context.Users.Add(user);
 
                 await _context.SaveChangesAsync();
 
-                return request.UserType;
+                var userType = _mapper.Map<UserType>(user);
+
+                return userType;
             }
             catch(Exception ex)
             {

@@ -2,7 +2,6 @@
 using HotChocolate.Resolvers;
 using MediatR;
 using OurTube.API.Schemas.Inputs;
-using OurTube.API.Schemas.Results;
 using OurTube.API.Schemas.Types;
 using OurTube.API.UseCases.Users.Commands;
 using OurTube.API.UseCases.Users.Queries;
@@ -12,7 +11,7 @@ namespace OurTube.API.Schemas.Mutations
 {
     public partial class Mutation
     {
-        public async Task<CreateUserResultType> RegisterUser([Service] IMediator mediator, IResolverContext context, CreateUserInputType input)
+        public async Task<UserType> SignUp([Service] IMediator mediator, IResolverContext context, CreateUserInputType input)
         {
             if (await mediator.Send(new CheckUsernameInUseQuery() { Username = input.Username }))
             {
@@ -22,45 +21,28 @@ namespace OurTube.API.Schemas.Mutations
 
             var type = await mediator.Send(new CreateUserCommand()
             {
-                UserType = new UserType()
-                {
-                    Username = input.Username,
-                    Password = input.Password,
-                }
+                Password = input.Password,
+                Username = input.Username
             });
 
-            return new CreateUserResultType()
-            {
-                Id = type.Id,
-                Username = type.Username
-            };
+            return type;
         }
 
-        public async Task<LoginUserResultType> Login([Service] IMediator mediator, IResolverContext context, LoginUserInputType input)
+        public async Task<TokenType> SignIn([Service] IMediator mediator, IResolverContext context, LoginUserInputType input)
         {
-            var (id, token) = await mediator.Send(new LoginUserQuery()
+            var token = await mediator.Send(new LoginUserQuery()
             {
-                UserType = new UserType()
-                {
-                    Username = input.Username,
-                    Password = input.Password
-                }
+                Username = input.Username,
+                Password = input.Password
             });
 
-            if (string.IsNullOrWhiteSpace(token))
+            if (token == null)
             {
                 context.ReportError(new Error("User doesnt exist", "ERROR_USER_NOT_FOUND"));
                 return null;
             }
 
-            return new LoginUserResultType()
-            {
-                UserLogged = id,
-                Token = new TokenType()
-                {
-                    Value = token
-                }
-            };
+            return token;
         }
     }
 }
