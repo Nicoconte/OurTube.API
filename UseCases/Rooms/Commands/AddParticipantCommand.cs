@@ -42,7 +42,11 @@ namespace OurTube.API.UseCases.Rooms.Commands
 
                 await _context.SaveChangesAsync();
 
-                return _mapper.Map<ParticipantType>(newParticipant);
+                var obj = _mapper.Map<ParticipantType>(newParticipant);
+
+                obj.User = _mapper.Map<UserType>(user);
+
+                return obj;
             }
             catch(Exception ex)
             {
