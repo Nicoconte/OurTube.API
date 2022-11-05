@@ -34,7 +34,7 @@ namespace OurTube.API.UseCases.Users.Commands
                 {
                     Id = Guid.NewGuid().ToString(),
                     Username = request.Username,
-                    Password = request.Password,
+                    Password = PasswordHelper.Hash(request.Password),
                     CreatedAt = DateTime.Now,
                     UpdatedAt = DateTime.Now
                 };

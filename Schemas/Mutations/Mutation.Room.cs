@@ -17,16 +17,19 @@ namespace OurTube.API.Schemas.Mutations
         {
             String userId = context.GetGlobalValue<String>("CurrentUserId");
 
+            if (String.IsNullOrEmpty(input.Name))
+            {
+                throw new GraphQLException("Room name cannot be empty");
+            }
+
             if (!input.Configuration.IsPublic && string.IsNullOrEmpty(input.Configuration.Password))
             {
-                context.ReportError(new Error("Password cannot be empty.", "ERROR_USER_BANNED"));
-                return null;
+                throw new GraphQLException("Password cannot be empty");
             }
 
             if (input.Configuration.MaxParticipants > 15)
             {
-                context.ReportError(new Error("15 is max amount of participants for a room.", "ERROR_USER_BANNED"));
-                return null;
+                throw new GraphQLException("The maximum amount of participant is 15.");
             }
 
             var roomCreated = await mediator.Send(new CreateRoomCommand()
@@ -49,6 +52,32 @@ namespace OurTube.API.Schemas.Mutations
         
         public async Task<ParticipantType> BanOrUnbanParticipantFromRoom([Service] IMediator mediator, BanOrUnbanParticipantInputType input)
         {
+            if (String.IsNullOrEmpty(input.ParticipantUsername) || String.IsNullOrEmpty(input.RoomId))
+            {
+                throw new GraphQLException("Invalid arguments. Some fields are empty");
+            }
+
+            if (await mediator.Send(new GetUserByUsernameQuery() { Username = input.ParticipantUsername}) == null)
+            {
+                throw new GraphQLException($"User with username '{input.ParticipantUsername}' does not exist");
+            }
+
+            if (await mediator.Send(new GetRoomByIdQuery() { RoomId = input.RoomId }) == null)
+            {
+                throw new GraphQLException($"Room with ID '{input.RoomId}' does not exist");
+            }
+
+            var roomParticipant = await mediator.Send(new GetParticipantFromRoomQuery()
+            {
+                Username = input.ParticipantUsername,
+                RoomId = input.RoomId
+            });
+
+            if (roomParticipant == null)
+            {
+                throw new GraphQLException($"The user requested is not a participant of this room");
+            }
+
             var participantModified = await mediator.Send(new BanOrUnbanParticipantCommand()
             {
                 ParticipantUsername = input.ParticipantUsername,
@@ -61,20 +90,33 @@ namespace OurTube.API.Schemas.Mutations
 
         public async Task<ParticipantType> AddParticipantToRoom([Service] IMediator mediator, IResolverContext context, AddParticipantToRoomInputType input)
         {
+            if (String.IsNullOrEmpty(input.ParticipantUsername) || String.IsNullOrEmpty(input.RoomId))
+            {
+                throw new GraphQLException("Invalid arguments. Some fields are empty");
+            }
+
+            if (await mediator.Send(new GetUserByUsernameQuery() { Username = input.ParticipantUsername }) == null)
+            {
+                throw new GraphQLException($"User with username '{input.ParticipantUsername}' does not exist");
+            }
+
             var room = await mediator.Send(new GetRoomByIdQuery() { RoomId = input.RoomId });
+
+            if (room == null)
+            {
+                throw new GraphQLException($"Room with ID '{input.RoomId}' does not exist");
+            }
 
             var userId = context.GetGlobalValue<String>("CurrentUserId");
 
             if (room.Owner.Id != userId)
             {
-                context.ReportError(new Error("Only the owner of this room can perform this action", "ERROR_INVALID_ROLE"));
-                return null;
+                throw new GraphQLException("Only the owner of this room can perform this action");
             }
 
             if (userId == input.ParticipantUsername)
             {
-                context.ReportError(new Error("You're the owner of this room. You cannot add yourself!", "ERROR_INVALID_OPERATION"));
-                return null;
+                throw new GraphQLException("You're the owner of this room. You cannot add yourself!");
             }
 
             var roomParticipant = await mediator.Send(new GetParticipantFromRoomQuery()
@@ -84,14 +126,12 @@ namespace OurTube.API.Schemas.Mutations
 
             if (roomParticipant != null || (roomParticipant != null && roomParticipant.IsBanned))
             {
-                context.ReportError(new Error("User cannot be added. He might be banned from this room o he is already in", "ERROR_INVALID_OPERATION"));
-                return null;
+                throw new GraphQLException("User cannot be added. He might be banned from this room o he is already in");
             }
 
             if (!room.Configuration.IsPublic && (PasswordHelper.Hash(input.RoomPassword) != room.Configuration.Password || string.IsNullOrEmpty(input.RoomPassword)))
             {
-                context.ReportError(new Error("Password is incorrect or empty.", "ERROR_USER_BANNED"));
-                return null;
+                throw new GraphQLException("Password is incorrect or empty.");
             }
 
             var participant = await mediator.Send(new AddParticipantCommand()
