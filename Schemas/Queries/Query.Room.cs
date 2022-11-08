@@ -1,6 +1,7 @@
 ﻿using HotChocolate.Resolvers;
 using MediatR;
 using OurTube.API.Entities;
+using OurTube.API.Helpers;
 using OurTube.API.Schemas.Inputs;
 using OurTube.API.Schemas.Types;
 using OurTube.API.UseCases.Rooms.Queries;
@@ -43,6 +44,13 @@ namespace OurTube.API.Schemas.Queries
 
         public async Task<RoomType> RoomById([Service] IMediator mediator, RoomByIdInputType input)
         {
+            var result = await _validators.RoomByIdInputTypeValidator.ValidateAsync(input);
+
+            if (!result.IsValid)
+            {
+                FluentValidationHelper.RaiseGraphQLException(result.Errors);
+            }
+
             return await mediator.Send(new GetRoomByIdQuery() { RoomId = input.RoomId });
         }
     }

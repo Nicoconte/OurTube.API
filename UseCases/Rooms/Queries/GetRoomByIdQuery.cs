@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using OurTube.API.Data;
 using OurTube.API.Entities;
+using OurTube.API.Extensions;
 using OurTube.API.Schemas.Types;
 
 namespace OurTube.API.UseCases.Rooms.Queries
@@ -26,6 +27,11 @@ namespace OurTube.API.UseCases.Rooms.Queries
 
         public async Task<RoomType> Handle(GetRoomByIdQuery request, CancellationToken cancellationToken)
         {
+            if (!await _context.Rooms.CheckIf(c => c.Id == request.RoomId))
+            {
+                throw new GraphQLException("Room does not exist");
+            }
+
             var room = await _context
                 .Rooms
                 .ProjectTo<RoomType>(_mapper.ConfigurationProvider)

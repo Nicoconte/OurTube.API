@@ -2,6 +2,7 @@
 using MediatR;
 using OurTube.API.Data;
 using OurTube.API.Entities;
+using OurTube.API.Extensions;
 using OurTube.API.Helpers;
 using OurTube.API.Schemas.Inputs;
 using OurTube.API.Schemas.Types;
@@ -28,29 +29,27 @@ namespace OurTube.API.UseCases.Users.Commands
 
         public async Task<UserType> Handle(CreateUserCommand request, CancellationToken cancellationToken)
         {
-            try
+            if (await _context.Users.CheckIf(c => c.Username == request.Username))
             {
-                var user = new User()
-                {
-                    Id = Guid.NewGuid().ToString(),
-                    Username = request.Username,
-                    Password = PasswordHelper.Hash(request.Password),
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
-                };
-
-                _context.Users.Add(user);
-
-                await _context.SaveChangesAsync();
-
-                var userType = _mapper.Map<UserType>(user);
-
-                return userType;
+                throw new GraphQLException("Username is already in use. Try another one");
             }
-            catch(Exception ex)
+
+            var user = new User()
             {
-                return null;
-            }
+                Id = Guid.NewGuid().ToString(),
+                Username = request.Username,
+                Password = PasswordHelper.Hash(request.Password),
+                CreatedAt = DateTime.Now,
+                UpdatedAt = DateTime.Now
+            };
+
+            _context.Users.Add(user);
+
+            await _context.SaveChangesAsync();
+
+            var userType = _mapper.Map<UserType>(user);
+
+            return userType;
         }
     }
 }

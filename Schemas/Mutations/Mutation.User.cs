@@ -1,6 +1,8 @@
-﻿using HotChocolate.AspNetCore.Authorization;
+﻿using FluentValidation;
+using HotChocolate.AspNetCore.Authorization;
 using HotChocolate.Resolvers;
 using MediatR;
+using OurTube.API.Helpers;
 using OurTube.API.Schemas.Inputs;
 using OurTube.API.Schemas.Types;
 using OurTube.API.UseCases.Users.Commands;
@@ -13,14 +15,11 @@ namespace OurTube.API.Schemas.Mutations
     {
         public async Task<UserType> SignUp([Service] IMediator mediator, IResolverContext context, CreateUserInputType input)
         {
-            if (String.IsNullOrEmpty(input.Username) || String.IsNullOrEmpty(input.Password))
-            {
-                throw new GraphQLException("Invalid arguments. Some fields are empty");
-            }
+            var result = await _validators.CreateUserInputTypeValidator.ValidateAsync(input);
 
-            if (await mediator.Send(new GetUserByUsernameQuery() { Username = input.Username }) != null)
+            if (!result.IsValid)
             {
-                throw new GraphQLException("Username is already in use. Try another one");
+                FluentValidationHelper.RaiseGraphQLException(result.Errors);
             }
 
             var type = await mediator.Send(new CreateUserCommand()
@@ -34,9 +33,12 @@ namespace OurTube.API.Schemas.Mutations
 
         public async Task<TokenType> SignIn([Service] IMediator mediator, IResolverContext context, LoginUserInputType input)
         {
-            if (String.IsNullOrEmpty(input.Username) || String.IsNullOrEmpty(input.Password))
+
+            var result = await _validators.LoginUserInputTypeValidator.ValidateAsync(input);
+
+            if (!result.IsValid)
             {
-                throw new GraphQLException("Invalid arguments. Some fields are empty");
+                FluentValidationHelper.RaiseGraphQLException(result.Errors);
             }
 
             var token = await mediator.Send(new LoginUserQuery()

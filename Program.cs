@@ -1,3 +1,4 @@
+using FluentValidation.AspNetCore;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -6,6 +7,7 @@ using OurTube.API.Data;
 using OurTube.API.Schemas.Interceptors;
 using OurTube.API.Schemas.Mutations;
 using OurTube.API.Schemas.Queries;
+using OurTube.API.Validators;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -17,11 +19,20 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration["ConnectionStrings:local"]);
 });
 
+builder.Services.AddFluentValidation(options =>
+{
+    options.RegisterValidatorsFromAssemblyContaining<Program>();
+});
+
+
+builder.Services.AddGraphQLCustomValidators();
+
 builder.Services.AddMediatR(typeof(Program));
 
 builder.Services.AddAutoMapper(typeof(Program));
 
 builder.Services.AddHttpContextAccessor();
+
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
